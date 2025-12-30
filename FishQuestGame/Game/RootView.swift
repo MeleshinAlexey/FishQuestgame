@@ -14,6 +14,12 @@ struct RootView: View {
     var body: some View {
         MainMenuView()
             .environmentObject(gameState)
+            .onAppear {
+                AudioManager.shared.startBackgroundMusic(
+                    fileName: "bg_music",
+                    volume: 0.35
+                )
+            }
             .previewInterfaceOrientation(.landscapeLeft)
     }
 }

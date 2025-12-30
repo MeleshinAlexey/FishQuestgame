@@ -6,8 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		73FDC0C12F0356840058E158 /* bg_music.wav in Resources */ = {isa = PBXBuildFile; fileRef = 73FDC0BD2F0356840058E158 /* bg_music.wav */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		732B35F42F0190A00019F723 /* FishQuestGame.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FishQuestGame.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		73FDC0BD2F0356840058E158 /* bg_music.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = bg_music.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -34,6 +39,7 @@
 			children = (
 				732B35F62F0190A00019F723 /* FishQuestGame */,
 				732B35F52F0190A00019F723 /* Products */,
+				73FDC0BD2F0356840058E158 /* bg_music.wav */,
 			);
 			sourceTree = "<group>";
 		};
@@ -109,6 +115,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				73FDC0C12F0356840058E158 /* bg_music.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

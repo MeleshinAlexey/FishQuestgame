@@ -13,7 +13,18 @@ struct SettingsView: View {
     let onClose: () -> Void
 
     // Временно: локальные настройки. Потом можно сохранить в AppStorage.
-    @State private var musicVolume: Double = 0.65
+    @AppStorage("musicVolume") private var musicVolume: Double = 0.65
+    private var musicVolumeFloat: Float { Float(musicVolume) }
+
+    // Список фоновых треков (добавляй файлы в проект с такими именами)
+    private let musicTracks: [(name: String, ext: String, title: String)] = [
+        ("bg_music", "wav", "Track 1"),
+        ("bg_music2", "wav", "Track 2"),
+        ("bg_music3", "wav", "Track 3")
+    ]
+
+    @AppStorage("musicTrackIndex") private var musicTrackIndex: Int = 0
+
     @State private var soundsVolume: Double = 0.65
 
     // Язык пока просто UI (позже подключим локализацию)
@@ -35,7 +46,6 @@ struct SettingsView: View {
                     HStack {
                         Button { onClose() } label: {
                             Image("home_button")
-                                
                         }
                         .buttonStyle(.plain)
 
@@ -43,14 +53,12 @@ struct SettingsView: View {
 
                         ZStack {
                             Image("user_balance")
-                                
+
                             Text("\(gameState.coins)")
                                 .font(.system(size: 34, weight: .heavy))
                                 .foregroundStyle(.white)
                                 .shadow(radius: 3)
                                 .offset(x: 18)
-                                
-                                
                         }
                     }
 
@@ -66,7 +74,7 @@ struct SettingsView: View {
                         .foregroundStyle(.white)
                         .shadow(radius: 6)
                         .greenTextOutline()
-                    
+
                     // 3 columns: Music | Language | Sounds
                     HStack() {
 
@@ -78,11 +86,57 @@ struct SettingsView: View {
                                 .shadow(radius: 6)
                                 .greenTextOutline()
 
+//                            // Выбор трека
+//                            HStack() {
+//                                Button {
+//                                    if musicTracks.isEmpty { return }
+//                                    musicTrackIndex = (musicTrackIndex - 1 + musicTracks.count) % musicTracks.count
+//                                    let t = musicTracks[musicTrackIndex]
+//                                    AudioManager.shared.changeBackgroundMusic(fileName: t.name, fileExtension: t.ext)
+//                                } label: {
+//                                    Image("leftFlip_button")
+//                                }
+//                                .buttonStyle(.plain)
+//
+//                                Text(musicTracks.isEmpty ? "No tracks" : musicTracks[musicTrackIndex].title)
+//                                    .font(.system(size: 26, weight: .heavy))
+//                                    .foregroundStyle(.white)
+//                                    .shadow(radius: 4)
+//                                    .greenTextOutline()
+//
+//                                Button {
+//                                    if musicTracks.isEmpty { return }
+//                                    musicTrackIndex = (musicTrackIndex + 1) % musicTracks.count
+//                                    let t = musicTracks[musicTrackIndex]
+//                                    AudioManager.shared.changeBackgroundMusic(fileName: t.name, fileExtension: t.ext)
+//                                } label: {
+//                                    Image("rightFlip_button")
+//                                }
+//                                .buttonStyle(.plain)
+//                            }
+//                            .padding(.bottom, 10)
+
+                            // Громкость
                             CapsuleSlider(value: $musicVolume)
                                 .frame(width: w * 0.26)
+                                .onAppear {
+                                    // применяем сохранённые настройки при открытии
+                                    AudioManager.shared.setVolume(musicVolumeFloat)
+
+                                    // применяем сохранённый трек при открытии
+                                    if !musicTracks.isEmpty {
+                                        let safeIndex = min(max(musicTrackIndex, 0), musicTracks.count - 1)
+                                        musicTrackIndex = safeIndex
+                                        let t = musicTracks[musicTrackIndex]
+                                        AudioManager.shared.changeBackgroundMusic(fileName: t.name, fileExtension: t.ext)
+                                    }
+                                }
+                                .onChange(of: musicVolume) { newValue in
+                                    AudioManager.shared.setVolume(Float(newValue))
+                                }
                         }
                         .offset(y: -13)
-                        
+
                         // LANGUAGE
                         HStack() {
                             Button {

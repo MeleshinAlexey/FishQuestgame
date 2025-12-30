@@ -92,8 +92,7 @@ struct AchievementsView: View {
 //                    .tint(.white.opacity(0.18))
 //                    .foregroundStyle(.white)
 //                    .padding(.bottom, max(10, h * 0.01))
-
-                    // Cards row 
+                    // Cards row
                     HStack(alignment: .top, spacing: spacing) {
                         ForEach(Array(achievements.enumerated()), id: \.element.id) { index, a in
                             AchievementCard(

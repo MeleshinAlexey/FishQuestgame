@@ -1,0 +1,58 @@
+/*
+  Localizable.strings
+  FishQuestGame
+
+  Created by Alexey Meleshin on 1/4/26.
+  
+
+*/
+
+/* Settings */
+"settings.title" = "Paramètres";
+"settings.language" = "Langue";
+"settings.music" = "Musique";
+"settings.sounds" = "Sons";
+
+/* Main Menu */
+"menu.play" = "JOUER";
+"menu.achieve" = "Succès";
+"menu.settings" = "Paramètres";
+"menu.quests" = "Quêtes";
+
+/* Quests */
+"quests.title" = "Quêtes";
+"quests.day1" = "Jour 1\nRécompense";
+"quests.day2" = "Jour 2\nRécompense";
+"quests.day3" = "Jour 3\nRécompense";
+"quests.day4" = "Jour 4\nRécompense";
+"quests.day5" = "Jour 5\nRécompense";
+
+/* Achievements */
+"achievements.title" = "Succès";
+"achievements.destroy100" = "Détruis 100\nhamsters";
+"achievements.destroy200" = "Détruis 200\nhamsters";
+"achievements.collect25000" = "Collecte\n25 000 pièces";
+"achievements.destroy1000" = "Détruis\n1 000\nhamsters";
+"achievements.play100WithFriend" = "Joue 100\nparties avec\nun ami";
+
+/* Mode Selection */
+"mode.title" = "Mode";
+"mode.player1" = "Joueur 1";
+"mode.player2" = "Joueur 2";
+"mode.name" = "Nom";
+"mode.enter_name" = "Entrez un nom";
+"mode.vs_cpu" = "VS CPU";
+"mode.vs_friend" = "VS AMI";
+"mode.add" = "Ajouter";
+"mode.cpu_name" = "CPU";
+"mode.player1_default" = "Joueur 1";
+"mode.player2_default" = "Joueur 2";
+
+/*GameScene*/
+"common.play" = "JOUER";
+"common.win"  = "GAGNÉ";
+"common.lose" = "PERDU";
+"common.menu" = "Menu";
+"common.next" = "Suivant";
+
+"menu.logo" = "Jeu Fish Quest";

@@ -8,93 +8,108 @@
 import SwiftUI
 
 struct MainMenuView: View {
-    // Временно так. Потом привяжем к GameViewModel / сохранениям.
     @EnvironmentObject private var gameState: GameState
+    @AppStorage("appLanguage") private var appLanguage: String = "en"
     @State private var showModeSelection: Bool = false
     @State private var showAchievements: Bool = false
     @State private var showSettings: Bool = false
     @State private var showQuests: Bool = false
+
+    // MARK: - Localization (explicit bundle lookup for in-app language)
+    private func L(_ key: String) -> String {
+        if let path = Bundle.main.path(forResource: appLanguage, ofType: "lproj"),
+           let langBundle = Bundle(path: path) {
+            return NSLocalizedString(key, tableName: nil, bundle: langBundle, value: key, comment: "")
+        }
+        return NSLocalizedString(key, tableName: nil, bundle: .main, value: key, comment: "")
+    }
 
     var body: some View {
         GeometryReader { geo in
             let size = geo.size
 
             ZStack {
-                // Фон (всегда во весь экран, без safe area)
                 Image("menu_background")
                     .resizable()
                     .scaledToFill()
                     .ignoresSafeArea(.all)
 
-                // Контент поверх
                 ZStack {
-                    // Хомяк слева
                     Image("menu_hamster")
                         .resizable()
                         .scaledToFit()
-                        // подгони по вкусу: 0.40...0.55
                         .frame(width: size.width * 0.38)
                         .position(x: size.width * 0.16,
                                   y: size.height * 0.62)
 
-                    // Заголовок
-                    Image("logo")
-                        .resizable()
-                        .scaledToFit()
+                    // Localized title instead of a logo image
+                    Text(L("menu.logo"))
+                        .font(.system(size: max(28, min(84, size.height * 0.13)), weight: .heavy))
+                        .foregroundStyle(Color(red: 250/255, green: 226/255, blue: 76/255))
+                        .shadow(radius: 3)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.55)
+                        .allowsTightening(true)
+                        .blueTextOutline()
                         .frame(width: size.width * 0.45)
                         .position(x: size.width * 0.50,
                                   y: size.height * 0.18)
 
-                    // Счётчик монет справа сверху
                     CoinCounterView(coins: gameState.coins)
                         .frame(width: size.width * 0.22)
                         .position(x: size.width * 0.86,
                                   y: size.height * 0.11)
 
-                    // Центральный блок кнопок
                     VStack(spacing: size.height * 0.025) {
 
-                        // Большая PLAY
-                        MenuButtonBig(title: "PLAY") {
+                        MenuButtonBig(title: L("menu.play")) {
                             showModeSelection = true
                         }
                         .frame(width: size.width * 0.30)
 
-                        // Три маленькие
                         HStack(spacing: size.width * 0.02) {
-                            MenuButtonSmall(title: "Achieve") {
+                            MenuButtonSmall(title: L("menu.achieve")) {
                                 showAchievements = true
                             }
-                            MenuButtonSmall(title: "Settings") {
+                            MenuButtonSmall(title: L("menu.settings")) {
                                 showSettings = true
                             }
-                            MenuButtonSmall(title: "Quests") {
+                            MenuButtonSmall(title: L("menu.quests")) {
                                 showQuests = true
                             }
                         }
                         .frame(width: size.width * 0.55)
                     }
-                    // позиция как на скрине: чуть ниже центра
                     .position(x: size.width * 0.50,
                               y: size.height * 0.60)
                 }
             }
         }
+        .environment(\.locale, Locale(identifier: appLanguage))
+        .id(appLanguage)
         .fullScreenCover(isPresented: $showModeSelection) {
             ModeSelectionView(showModeSelection: $showModeSelection)
                 .environmentObject(gameState)
+                .environment(\.locale, Locale(identifier: appLanguage))
+                .id(appLanguage)
         }
         .fullScreenCover(isPresented: $showAchievements) {
             AchievementsView()
                 .environmentObject(gameState)
+                .environment(\.locale, Locale(identifier: appLanguage))
+                .id(appLanguage)
         }
         .fullScreenCover(isPresented: $showSettings) {
             SettingsView(onClose: { showSettings = false })
                 .environmentObject(gameState)
+                .environment(\.locale, Locale(identifier: appLanguage))
+                .id(appLanguage)
         }
         .fullScreenCover(isPresented: $showQuests) {
             QuestsView(onClose: {})
                 .environmentObject(gameState)
+                .environment(\.locale, Locale(identifier: appLanguage))
+                .id(appLanguage)
         }
     }
 }
@@ -114,7 +129,9 @@ private struct CoinCounterView: View {
                 .font(.system(size: 22, weight: .heavy))
                 .foregroundStyle(.white)
                 .shadow(radius: 1)
-                // небольшое смещение вправо, чтобы текст не залезал на иконку в ассете
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .allowsTightening(true)
                 .offset(x: 12)
         }
     }
@@ -128,6 +145,7 @@ private struct MenuButtonBig: View {
 
     var body: some View {
         Button {
+            SoundManager.shared.playButton()
             action()
         } label: {
             ZStack {
@@ -135,10 +153,15 @@ private struct MenuButtonBig: View {
                     .resizable()
                     .scaledToFit()
 
+                // ✅ ADAPTIVE TEXT (one line, shrink-to-fit)
                 Text(title)
                     .font(.system(size: 34, weight: .heavy))
                     .foregroundStyle(.white)
                     .shadow(radius: 1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                    .allowsTightening(true)
+                    .padding(.horizontal, 18)
             }
         }
         .buttonStyle(.plain)
@@ -160,6 +183,7 @@ private struct MenuButtonSmall: View {
 
     var body: some View {
         Button {
+            SoundManager.shared.playButton()
             action()
         } label: {
             ZStack {
@@ -167,10 +191,15 @@ private struct MenuButtonSmall: View {
                     .resizable()
                     .scaledToFit()
 
+                // ✅ ADAPTIVE TEXT (one line, shrink-to-fit)
                 Text(title)
                     .font(.system(size: 20, weight: .heavy))
                     .foregroundStyle(.white)
                     .shadow(radius: 1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                    .allowsTightening(true)
+                    .padding(.horizontal, 14)
             }
         }
         .buttonStyle(.plain)
@@ -181,6 +210,20 @@ private struct MenuButtonSmall: View {
                 .onChanged { _ in isPressed = true }
                 .onEnded { _ in isPressed = false }
         )
+    }
+}
+
+private extension View {
+    func blueTextOutline() -> some View {
+        self
+            .overlay(
+                self
+                    .foregroundColor(.clear)
+                    .shadow(color: Color(red: 42/255, green: 100/255, blue: 246/255), radius: 0, x: 2, y: 0)
+                    .shadow(color: Color(red: 42/255, green: 100/255, blue: 246/255), radius: 0, x: -2, y: 0)
+                    .shadow(color: Color(red: 42/255, green: 100/255, blue: 246/255), radius: 0, x: 0, y: 2)
+                    .shadow(color: Color(red: 42/255, green: 100/255, blue: 246/255), radius: 0, x: 0, y: -2)
+            )
     }
 }
 

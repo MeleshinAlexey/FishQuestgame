@@ -19,11 +19,28 @@ final class AudioManager: ObservableObject {
 
     private init() {}
 
+    private var currentFileName: String = "bg_music"
+    private var currentFileExtension: String?
+    private var currentVolume: Float = 0.35
+
     func startBackgroundMusic(
         fileName: String = "bg_music",
-        volume: Float = 0.35
+        fileExtension: String? = nil,
+        volume: Float? = nil,
+        restartIfPlaying: Bool = false
     ) {
-        guard !isPlaying else { return }
+        // If we're already playing and not asked to restart, just update volume (if provided) and return.
+        if isPlaying, !restartIfPlaying {
+            if let volume {
+                setVolume(volume)
+            }
+            return
+        }
+
+        // Save requested state (so changeBackgroundMusic can reuse current volume).
+        currentFileName = fileName
+        currentFileExtension = fileExtension
+        if let volume { currentVolume = max(0, min(1, volume)) }
 
         do {
             try AVAudioSession.sharedInstance().setCategory(
@@ -32,21 +49,35 @@ final class AudioManager: ObservableObject {
             )
             try AVAudioSession.sharedInstance().setActive(true)
 
-            // ищем любой формат
-            let exts = ["wav", "mp3", "m4a"]
-            guard
-                let url = exts.compactMap({
+            // Stop previous player if any
+            player?.stop()
+            player = nil
+            isPlaying = false
+
+            // Find resource URL (explicit extension first, otherwise try common ones)
+            let url: URL?
+            if let fileExtension {
+                url = Bundle.main.url(forResource: fileName, withExtension: fileExtension)
+            } else {
+                let exts = ["wav", "mp3", "m4a"]
+                url = exts.compactMap {
                     Bundle.main.url(forResource: fileName, withExtension: $0)
-                }).first
-            else {
+                }.first
+            }
+
+            guard let url else {
                 print("❌ Music file not found:", fileName)
                 return
             }
 
             let p = try AVAudioPlayer(contentsOf: url)
             p.numberOfLoops = -1
-            p.volume = volume
             p.prepareToPlay()
+
+            // Apply volume reliably (iOS 16)
+            p.volume = currentVolume
+            p.setVolume(currentVolume, fadeDuration: 0)
+
             p.play()
 
             player = p
@@ -63,12 +94,21 @@ final class AudioManager: ObservableObject {
     }
 
     func setVolume(_ v: Float) {
-        player?.volume = v
+        let clamped = max(0, min(1, v))
+        currentVolume = clamped
+        // Apply immediately to the currently playing player (if any)
+        player?.volume = clamped
+        player?.setVolume(clamped, fadeDuration: 0)
     }
     
-    func changeBackgroundMusic(fileName: String, fileExtension: String) {
-        // Reuse existing API (should already handle replacing the currently playing background track).
-        startBackgroundMusic(fileName: "bg_music")
+    func changeBackgroundMusic(fileName: String, fileExtension: String? = nil) {
+        // Restart playback with a new track, preserving current volume.
+        startBackgroundMusic(
+            fileName: fileName,
+            fileExtension: fileExtension,
+            volume: currentVolume,
+            restartIfPlaying: true
+        )
     }
     
 

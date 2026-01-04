@@ -1,0 +1,58 @@
+/*
+  Localizable.strings
+  FishQuestGame
+
+  Created by Alexey Meleshin on 1/4/26.
+  
+
+*/
+
+/* Settings */
+"settings.title" = "Settings";
+"settings.language" = "Language";
+"settings.music" = "Music";
+"settings.sounds" = "Sounds";
+
+/* Main Menu */
+"menu.play" = "PLAY";
+"menu.achieve" = "Achieve";
+"menu.settings" = "Settings";
+"menu.quests" = "Quests";
+
+/* Quests */
+"quests.title" = "Quests";
+"quests.day1" = "Day 1\nReward";
+"quests.day2" = "Day 2\nReward";
+"quests.day3" = "Day 3\nReward";
+"quests.day4" = "Day 4\nReward";
+"quests.day5" = "Day 5\nReward";
+
+/* Achievements */
+"achievements.title" = "Achieve";
+"achievements.destroy100" = "Destroy 100\nhamsters";
+"achievements.destroy200" = "Destroy 200\nhamsters";
+"achievements.collect25000" = "Collect\n25,000 coins";
+"achievements.destroy1000" = "Destroy\n1,000\nhamsters";
+"achievements.play100WithFriend" = "Play 100\nmatches with\na friend";
+
+/* Mode Selection */
+"mode.title" = "Mode";
+"mode.player1" = "Player 1";
+"mode.player2" = "Player 2";
+"mode.name" = "Name";
+"mode.enter_name" = "Enter name";
+"mode.vs_cpu" = "VS CPU";
+"mode.vs_friend" = "VS FRIEND";
+"mode.add" = "Add";
+"mode.cpu_name" = "CPU";
+"mode.player1_default" = "Player 1";
+"mode.player2_default" = "Player 2";
+
+/*GameScene*/
+"common.play" = "PLAY";
+"common.win"  = "WIN";
+"common.lose" = "LOSE";
+"common.menu" = "Menu";
+"common.next" = "Next";
+
+"menu.logo" = "Fish Quest Game";

@@ -71,99 +71,96 @@ struct QuestsView: View {
     @EnvironmentObject private var gameState: GameState
     let onClose: () -> Void
 
-    private let quests: [QuestDefinition] = [
-        .init(id: .day1, title: "Day 1\nReward", reward: 100),
-        .init(id: .day2, title: "Day 2\nReward", reward: 100),
-        .init(id: .day3, title: "Day 3\nReward", reward: 100),
-        .init(id: .day4, title: "Day 4\nReward", reward: 100),
-        .init(id: .day5, title: "Day 5\nReward", reward: 100)
-    ]
+    @AppStorage("appLanguage") private var appLanguage: String = "en"
+
+    // MARK: - Localization (explicit bundle lookup for in-app language)
+    private func L(_ key: String) -> String {
+        if let path = Bundle.main.path(forResource: appLanguage, ofType: "lproj"),
+           let langBundle = Bundle(path: path) {
+            return NSLocalizedString(key, tableName: nil, bundle: langBundle, value: key, comment: "")
+        }
+        return NSLocalizedString(key, tableName: nil, bundle: .main, value: key, comment: "")
+    }
+
+    private var quests: [QuestDefinition] {
+        [
+            .init(id: .day1, title: L("quests.day1"), reward: 100),
+            .init(id: .day2, title: L("quests.day2"), reward: 100),
+            .init(id: .day3, title: L("quests.day3"), reward: 100),
+            .init(id: .day4, title: L("quests.day4"), reward: 100),
+            .init(id: .day5, title: L("quests.day5"), reward: 100)
+        ]
+    }
 
     var body: some View {
         GeometryReader { geo in
-            let size = geo.size
-            let insets = geo.safeAreaInsets
+            let w = geo.size.width
+            let h = geo.size.height
 
-            // Safe-area aware layout (everything except background)
-            let contentWidth = size.width - insets.leading - insets.trailing
-            let contentHeight = size.height - insets.top - insets.bottom
-
-            let horizontalPadding = contentWidth * 0.045
-            let topPadding = max(10.0, contentHeight * 0.03)
-            let bottomPadding = max(10.0, contentHeight * 0.04)
-
-            // Cards: make them large and evenly distributed across the width
-            let spacing = max(14.0, min(28.0, contentWidth * 0.03))
-            let availableWidth = contentWidth - (horizontalPadding * 2)
-            let slotWidth = (availableWidth - spacing * 4) / 5
-
-            // Prefer bigger cards (like the reference), but clamp so it fits any device
-            let cardWidth = min(max(120.0, slotWidth), min(200.0, contentWidth * 0.24))
-            let cardHeight = min(max(150.0, contentHeight * 0.50), 260.0)
+            // Match AchievementsView layout approach
+            let horizontalPadding: CGFloat = max(16, w * 0.03)
+            let spacing: CGFloat = max(14, w * 0.02)
+            let cardWidth: CGFloat = (w - horizontalPadding * 2 - spacing * 4) / 5
+            let cardHeight: CGFloat = min(h * 0.62, cardWidth * 1.55)
+            let buttonHeight: CGFloat = max(44, h * 0.09)
 
             ZStack {
                 Image("menu_background")
                     .resizable()
-                    .scaledToFill()
-                    .ignoresSafeArea(.all)
+                    .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    topBar(size: size)
-                        .padding(.horizontal, horizontalPadding)
-                        .padding(.top, insets.top + topPadding)
-                        .padding(.bottom, contentHeight * 0.04)
+                    // Top bar (home + balance)
+                    HStack {
+                        Button {
+                            SoundManager.shared.playButton()
+                            onClose()
+                            dismiss()
+                        } label: {
+                            Image("home_button")
+                        }
+                        .buttonStyle(.plain)
 
-                    Spacer(minLength: 0)
-                        .frame(height: contentHeight * 0.06)
+                        Spacer(minLength: 0)
 
-                    HStack(alignment: .top, spacing: spacing) {
-                        ForEach(quests) { q in
-                            QuestCard(quest: q, cardWidth: cardWidth, cardHeight: cardHeight)
+                        ZStack {
+                            Image("user_balance")
+
+                            Text("\(gameState.coins)")
+                                .font(.system(size: min(34, h * 0.055), weight: .heavy))
+                                .foregroundStyle(.white)
+                                .shadow(radius: 3)
+                                .offset(x: min(26, w * 0.02))
                         }
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: cardHeight + (cardHeight * 0.30))
+
+                    // Title (same style pattern as AchievementsView)
+                    Text(L("quests.title"))
+                        .font(.system(size: min(64, h * 0.10), weight: .heavy))
+                        .foregroundStyle(.white)
+                        .shadow(radius: 6)
+                        .padding(.top, max(6, h * 0.01))
+                        .padding(.bottom, max(10, h * 0.02))
+
+                    // Cards row
+                    HStack(alignment: .top, spacing: spacing) {
+                        ForEach(quests) { q in
+                            QuestCard(
+                                quest: q,
+                                cardWidth: cardWidth,
+                                cardHeight: cardHeight,
+                                buttonHeight: buttonHeight
+                            )
+                        }
+                    }
                     .padding(.horizontal, horizontalPadding)
 
                     Spacer(minLength: 0)
-                        .frame(height: bottomPadding)
                 }
             }
         }
-    }
-
-    @ViewBuilder
-    private func topBar(size: CGSize) -> some View {
-        let iconWidth = size.width * 0.07
-        let balanceWidth = size.width * 0.22
-
-        HStack(alignment: .center) {
-            Button {
-                // If MainMenu passed a close hook, run it, then dismiss.
-                onClose()
-                dismiss()
-            } label: {
-                Image("home_button")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: iconWidth)
-            }
-            .buttonStyle(.plain)
-
-            Spacer(minLength: 0)
-
-            Text("Quests")
-                .font(.system(size: min(size.width, size.height) * 0.085, weight: .heavy))
-                .foregroundStyle(.white)
-                .shadow(radius: 3)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-
-            Spacer(minLength: 0)
-
-            CoinCounterView(coins: gameState.coins)
-                .frame(width: balanceWidth)
-        }
+        .environment(\.locale, Locale(identifier: appLanguage))
+        .id(appLanguage)
     }
 }
 
@@ -178,10 +175,11 @@ private struct QuestCard: View {
     let quest: QuestDefinition
     let cardWidth: CGFloat
     let cardHeight: CGFloat
+    let buttonHeight: CGFloat
 
     var body: some View {
         let titleFont = max(10, min(20, cardWidth * 0.11))
-        let rewardWidth = cardWidth * 0.85
+        let rewardWidth = cardWidth * 0.95
 
         return VStack(spacing: max(10, cardHeight * 0.08)) {
             ZStack {
@@ -204,7 +202,7 @@ private struct QuestCard: View {
                         .lineSpacing(-2)
                         .shadow(color: .black.opacity(0.35), radius: 2, x: 0, y: 2)
                         .frame(maxWidth: cardWidth * 0.80)
-                        .padding(.bottom, cardHeight * 0.2)
+                        .padding(.bottom, cardHeight * 0.27)
                 }
             }
 
@@ -212,9 +210,10 @@ private struct QuestCard: View {
             let isClaimed = gameState.isQuestClaimed(quest.id)
 
             Button {
+                SoundManager.shared.playButton()
                 gameState.claimQuest(quest.id, reward: quest.reward)
             } label: {
-                RewardButton(value: quest.reward, width: rewardWidth)
+                RewardButton(value: quest.reward, width: rewardWidth, height: buttonHeight)
                     .opacity(isCompleted ? (isClaimed ? 0.5 : 1.0) : 0.35)
             }
             .buttonStyle(.plain)
@@ -227,14 +226,16 @@ private struct QuestCard: View {
 private struct RewardButton: View {
     let value: Int
     let width: CGFloat
+    let height: CGFloat
 
     var body: some View {
-        let fontSize = max(12, width * 0.27)
+        let fontSize = max(22, height * 0.45)
 
         return ZStack {
             Image("button_bg")
                 .resizable()
                 .scaledToFit()
+                .frame(width: width, height: height)
 
             Text("\(value)")
                 .font(.system(size: fontSize, weight: .heavy))
@@ -244,7 +245,7 @@ private struct RewardButton: View {
                 .shadow(radius: 2)
                 .padding(.horizontal, width * 0.10)
         }
-        .frame(width: width)
+        .frame(width: width, height: height)
     }
 }
 

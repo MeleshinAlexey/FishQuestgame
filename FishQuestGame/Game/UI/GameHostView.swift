@@ -34,27 +34,28 @@ struct GameHostView: View {
     // Пока GameHostView сам держит VM (позже можно вынести наверх как EnvironmentObject)
     @EnvironmentObject private var gameState: GameState
     @StateObject private var vm = GameViewModel()
+    @AppStorage("appLanguage") private var appLanguage: String = "en"
 
     // Данные игроков (приходят с экрана выбора режима)
     let player1Name: String
     let player2Name: String
     let player1IconAsset: String
     let player2IconAsset: String
-    let isFriendMode: Bool
+    let mode: GameViewModel.MatchSetup.Mode
 
     init(
         player1Name: String = "Player 1",
         player2Name: String = "Player 2",
         player1IconAsset: String = "user_icon_base",
         player2IconAsset: String = "user_icon_base",
-        isFriendMode: Bool = true,
+        mode: GameViewModel.MatchSetup.Mode = .vsFriend,
         onExitToMenu: @escaping () -> Void = {}
     ) {
         self.player1Name = player1Name
         self.player2Name = player2Name
         self.player1IconAsset = player1IconAsset
         self.player2IconAsset = player2IconAsset
-        self.isFriendMode = isFriendMode
+        self.mode = mode
         self.onExitToMenu = onExitToMenu
     }
 
@@ -66,6 +67,30 @@ struct GameHostView: View {
         vm.leftScore >= vm.rightScore ? player1Name : player2Name
     }
     
+    // MARK: - Localization (explicit bundle lookup for in-app language)
+    private func L(_ key: String) -> String {
+        if let path = Bundle.main.path(forResource: appLanguage, ofType: "lproj"),
+           let langBundle = Bundle(path: path) {
+            return NSLocalizedString(key, tableName: nil, bundle: langBundle, value: key, comment: "")
+        }
+        return NSLocalizedString(key, tableName: nil, bundle: .main, value: key, comment: "")
+    }
+
+    private var isHumanWinner: Bool {
+        // Human is on the right by default in your vsCPU mode.
+        // If scores are tied, treat it as a win for Player 1 (existing behavior).
+        vm.leftScore < vm.rightScore
+    }
+
+    private var resultWordKey: String {
+        // In vsFriend, always show WIN for the winnerName display.
+        // In vsCPU, show WIN if the human (right side) won, else LOSE.
+        if mode == .vsCPU {
+            return isHumanWinner ? "common.win" : "common.lose"
+        }
+        return "common.win"
+    }
+
     private func goToMainMenu() {
         onExitToMenu()
     }
@@ -83,7 +108,9 @@ struct GameHostView: View {
 
             if vm.isGameOver {
                 WinMatchOverlay(
-                    winnerName: winnerName,
+                    titleText: "\(winnerName) \(L(resultWordKey))!",
+                    menuTitle: L("common.menu"),
+                    nextTitle: L("common.next"),
                     onMenu: { goToMainMenu() },
                     onNext: {
                         vm.resetUI()
@@ -103,7 +130,8 @@ struct GameHostView: View {
                     player2Name: player2Name,
                     player1IconAsset: player1IconAsset,
                     player2IconAsset: player2IconAsset,
-                    isFriendMode: isFriendMode
+                    mode: mode,
+                    humanSide: .right
                 )
                 s.scaleMode = .resizeFill
                 s.gameState = gameState
@@ -116,6 +144,8 @@ struct GameHostView: View {
                 }
             }
         }
+        .environment(\.locale, Locale(identifier: appLanguage))
+        .id(appLanguage)
     }
 
     private var hud: some View {
@@ -184,6 +214,9 @@ struct GameHostView: View {
             Text("\(seconds)s")
                 .font(.system(size: 20, weight: .heavy))
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .allowsTightening(true)
         }
         .frame(width: 72, height: 72)
     }
@@ -216,6 +249,8 @@ struct GameHostView: View {
                         .font(.system(size: 22, weight: .heavy))
                         .foregroundStyle(.white)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .allowsTightening(true)
 
                     Spacer(minLength: 0)
 
@@ -258,7 +293,9 @@ struct GameHostView: View {
 }
 
 private struct WinMatchOverlay: View {
-    let winnerName: String
+    let titleText: String
+    let menuTitle: String
+    let nextTitle: String
     let onMenu: () -> Void
     let onNext: () -> Void
 
@@ -269,14 +306,19 @@ private struct WinMatchOverlay: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 24) {
-                Text("\(winnerName) WIN!")
+                Text(titleText)
                     .font(.system(size: 66, weight: .heavy))
                     .foregroundStyle(.white)
                     .shadow(radius: 6)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.55)
+                    .allowsTightening(true)
+                    .padding(.horizontal, 16)
 
                 HStack(spacing: 28) {
-                    WinButton(title: "Menu", action: onMenu)
-                    WinButton(title: "Next", action: onNext)
+                    WinButton(title: menuTitle, action: onMenu)
+                    WinButton(title: nextTitle, action: onNext)
                 }
             }
             .padding(.horizontal, 24)
@@ -292,14 +334,20 @@ private struct WinButton: View {
         Button(action: action) {
             ZStack {
                 Image("button_bg")
+                    .resizable()
+                    .scaledToFit()
 
                 Text(title)
                     .font(.system(size: 44, weight: .heavy))
                     .foregroundStyle(.white)
                     .shadow(radius: 2)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.4)
+                    .allowsTightening(true)
+                    .padding(.horizontal, 18)
             }
+            .frame(width: 240, height: 92)
         }
         .buttonStyle(.plain)
     }

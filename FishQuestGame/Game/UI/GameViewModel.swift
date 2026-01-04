@@ -29,7 +29,19 @@ final class GameViewModel: ObservableObject {
         var player2: Player
         var mode: Mode = .vsFriend
 
-        enum Mode: String, Codable { case vsFriend }
+        /// Which side the human plays on (relevant for vsCPU).
+        /// Default: human plays on the right side.
+        var humanSide: HumanSide = .right
+
+        enum Mode: String, Codable {
+            case vsFriend
+            case vsCPU
+        }
+
+        enum HumanSide: String, Codable {
+            case left
+            case right
+        }
     }
     
     func setScore(left: Int, right: Int) {

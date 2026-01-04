@@ -8,8 +8,11 @@
 import SwiftUI
 
 struct LoadingView: View {
+    let onFinished: () -> Void
+    
     @State private var progress: CGFloat = 0.0
     @State private var isPortrait: Bool = true
+    @State private var didFinish: Bool = false
 
     var body: some View {
         ZStack {
@@ -76,13 +79,17 @@ struct LoadingView: View {
         Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
             if progress >= 1 {
                 timer.invalidate()
+                if !didFinish {
+                    didFinish = true
+                    onFinished()
+                }
             } else {
-                progress += 0.01
+                progress = min(1, progress + 0.01)
             }
         }
     }
 }
 
 #Preview {
-    LoadingView()
+    LoadingView(onFinished: {})
 }

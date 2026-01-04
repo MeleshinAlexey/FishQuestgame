@@ -1,0 +1,58 @@
+/*
+  Localizable.strings
+  FishQuestGame
+
+  Created by Alexey Meleshin on 1/4/26.
+  
+
+*/
+
+/* Settings */
+"settings.title" = "Impostazioni";
+"settings.language" = "Lingua";
+"settings.music" = "Musica";
+"settings.sounds" = "Suoni";
+
+/* Main Menu */
+"menu.play" = "GIOCA";
+"menu.achieve" = "Obiettivi";
+"menu.settings" = "Impostazioni";
+"menu.quests" = "Missioni";
+
+/* Quests */
+"quests.title" = "Missioni";
+"quests.day1" = "Giorno 1\nRicompensa";
+"quests.day2" = "Giorno 2\nRicompensa";
+"quests.day3" = "Giorno 3\nRicompensa";
+"quests.day4" = "Giorno 4\nRicompensa";
+"quests.day5" = "Giorno 5\nRicompensa";
+
+/* Achievements */
+"achievements.title" = "Obiettivi";
+"achievements.destroy100" = "Distruggi 100\ncriceti";
+"achievements.destroy200" = "Distruggi 200\ncriceti";
+"achievements.collect25000" = "Raccogli\n25.000 monete";
+"achievements.destroy1000" = "Distruggi\n1.000\ncriceti";
+"achievements.play100WithFriend" = "Gioca 100\npartite con\nun amico";
+
+/* Mode Selection */
+"mode.title" = "Modalità";
+"mode.player1" = "Giocatore 1";
+"mode.player2" = "Giocatore 2";
+"mode.name" = "Nome";
+"mode.enter_name" = "Inserisci nome";
+"mode.vs_cpu" = "VS CPU";
+"mode.vs_friend" = "VS AMICO";
+"mode.add" = "Aggiungi";
+"mode.cpu_name" = "CPU";
+"mode.player1_default" = "Giocatore 1";
+"mode.player2_default" = "Giocatore 2";
+
+/*GameScene*/
+"common.play" = "GIOCA";
+"common.win"  = "VINCI";
+"common.lose" = "PERDI";
+"common.menu" = "Menu";
+"common.next" = "Avanti";
+
+"menu.logo" = "Gioco Fish Quest";

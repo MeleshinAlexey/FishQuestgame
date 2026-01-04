@@ -51,6 +51,8 @@ final class BoardNode: SKNode {
 
     func clearAll() {
         for (_, pair) in hamstersByHole {
+            // SFX: hamster disappears
+            SoundManager.shared.play("hide", ext: "wav")
             pair.node.removeFromParent()
         }
         hamstersByHole.removeAll()
@@ -59,6 +61,12 @@ final class BoardNode: SKNode {
     func randomFreeHole() -> Int? {
         let free = (0...8).filter { hamstersByHole[$0] == nil }
         return free.randomElement()
+    }
+
+    // MARK: - AI helpers
+    /// Returns currently active hamster nodes on this board (for CPU targeting).
+    func activeHamsters() -> [HamsterSpriteNode] {
+        hamstersByHole.values.map { $0.node }
     }
 
     func spawnHamster(type: HamsterType, holeIndex: Int, now: TimeInterval, visibleFor: TimeInterval) {
@@ -84,12 +92,16 @@ final class BoardNode: SKNode {
         hamster.position.y += hamster.size.height * 0.18
 
         addChild(hamster)
+        // SFX: hamster pops up
+        SoundManager.shared.play("pop", ext: "wav")
 
         // Treat `visibleFor` as the time the hamster stays "available" (idle) before retreating.
         hamster.playSpawnCycle(idleDuration: visibleFor) { [weak self, weak hamster] in
             guard let self else { return }
             // Free the hole when the cycle finishes.
             self.hamstersByHole[holeIndex] = nil
+            // SFX: hamster hides
+            SoundManager.shared.play("hide", ext: "wav")
             hamster?.removeFromParent()
         }
 
@@ -104,6 +116,8 @@ final class BoardNode: SKNode {
 
         for (hole, pair) in expired {
             pair.node.removeAllActions()
+            // SFX: hamster hides (expired)
+            SoundManager.shared.play("hide", ext: "wav")
             pair.node.removeFromParent()
             hamstersByHole[hole] = nil
         }

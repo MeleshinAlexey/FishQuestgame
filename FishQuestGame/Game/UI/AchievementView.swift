@@ -10,14 +10,26 @@ import SwiftUI
 struct AchievementsView: View {
     @EnvironmentObject private var gameState: GameState
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("appLanguage") private var appLanguage: String = "en"
 
-    private let achievements: [Achievement] = [
-        .init(id: .destroy100, title: "Destroy 100\nhamsters", target: 100, reward: 100),
-        .init(id: .destroy200, title: "Destroy 200\nhamsters", target: 200, reward: 100),
-        .init(id: .collect25000, title: "Collect\n25,000 coins", target: 25_000, reward: 100),
-        .init(id: .destroy1000, title: "Destroy\n1,000\nhamsters", target: 1_000, reward: 100),
-        .init(id: .play100WithFriend, title: "Play 100\nmatches with\na friend", target: 100, reward: 100)
-    ]
+    // MARK: - Localization (explicit bundle lookup for in-app language)
+    private func L(_ key: String) -> String {
+        if let path = Bundle.main.path(forResource: appLanguage, ofType: "lproj"),
+           let langBundle = Bundle(path: path) {
+            return NSLocalizedString(key, tableName: nil, bundle: langBundle, value: key, comment: "")
+        }
+        return NSLocalizedString(key, tableName: nil, bundle: .main, value: key, comment: "")
+    }
+
+    private var achievements: [Achievement] {
+        [
+            .init(id: .destroy100, title: L("achievements.destroy100"), target: 100, reward: 100),
+            .init(id: .destroy200, title: L("achievements.destroy200"), target: 200, reward: 100),
+            .init(id: .collect25000, title: L("achievements.collect25000"), target: 25_000, reward: 100),
+            .init(id: .destroy1000, title: L("achievements.destroy1000"), target: 1_000, reward: 100),
+            .init(id: .play100WithFriend, title: L("achievements.play100WithFriend"), target: 100, reward: 100)
+        ]
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -42,6 +54,7 @@ struct AchievementsView: View {
                     HStack {
 //                        Spacer()
                         Button {
+                            SoundManager.shared.playButton()
                             dismiss()
                         } label: {
                             Image("home_button")
@@ -66,7 +79,7 @@ struct AchievementsView: View {
 //                    .padding(.top, max(8, h * 0.02))
 
                     // Title
-                    Text("Achieve")
+                    Text(L("achievements.title"))
                         .font(.system(size: min(64, h * 0.10), weight: .heavy))
                         .foregroundStyle(.white)
                         .shadow(radius: 6)
@@ -110,6 +123,8 @@ struct AchievementsView: View {
                 }
             }
         }
+        .environment(\.locale, Locale(identifier: appLanguage))
+        .id(appLanguage)
     }
 }
 
@@ -140,10 +155,15 @@ private struct AchievementCard: View {
                     Spacer()
 
                     Text(achievement.title)
-                        .font(.system(size: max(16, cardWidth * 0.10), weight: .heavy))
+                        // Smaller base size + shrink-to-fit for long translations
+                        .font(.system(size: max(13, cardWidth * 0.085), weight: .heavy))
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
                         .shadow(radius: 3)
+                        .lineLimit(4)
+                        .minimumScaleFactor(0.55)
+                        .allowsTightening(true)
+                        .frame(maxWidth: cardWidth * 0.80)
                         .padding(.horizontal, 8)
                         .padding(.bottom, max(10, cardHeight * 0.10))
                         .offset(y: -cardHeight * 0.087)
@@ -152,6 +172,7 @@ private struct AchievementCard: View {
             }
 
             Button {
+                SoundManager.shared.playButton()
                 gameState.claim(achievement)
             } label: {
                 ZStack {

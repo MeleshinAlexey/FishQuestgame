@@ -15,6 +15,8 @@ enum HamsterType {
     var maxHP: Int { self == .normal ? 1 : (self == .helmet2 ? 2 : 3) }
 }
 
+// NOTE: This debug node is currently unused (you use HamsterSpriteNode).
+// Keeping it for now since it doesn't break anything.
 final class HamsterNode: SKShapeNode {
     let id = UUID()
     let side: Side
@@ -66,8 +68,19 @@ final class GameScene: SKScene {
     /// Injected from SwiftUI (GameHostView). Used for achievements/coins persistence.
     weak var gameState: GameState?
 
-    /// True when this match is vs a friend (for the achievement "Play 100 matches with a friend").
-    private let isFriendMode: Bool
+    /// Match mode (vs friend or vs CPU) injected from SwiftUI.
+    private let mode: GameViewModel.MatchSetup.Mode
+
+    /// Which side the human player controls (relevant for vsCPU). Default: right.
+    private let humanSide: GameViewModel.MatchSetup.HumanSide
+
+    // MARK: - CPU tuning
+    private let cpuReactionRange: ClosedRange<TimeInterval> = 0.45...0.90
+    private let cpuAccuracy: Double = 0.55
+    private let cpuMaxHitsPerSecond: Double = 2.0
+
+    private var cpuNextActionAt: TimeInterval = 0
+    private var cpuLastHitAt: TimeInterval = 0
 
     private var safeInsets: UIEdgeInsets = .zero
 
@@ -97,6 +110,7 @@ final class GameScene: SKScene {
             right: max(vi.right, wi.right)
         )
     }
+
     // MARK: Config (баланс)
     private let roundDuration: TimeInterval = 30
     private let targetScore = 25
@@ -139,14 +153,16 @@ final class GameScene: SKScene {
         player2Name: String,
         player1IconAsset: String,
         player2IconAsset: String,
-        isFriendMode: Bool = true
+        mode: GameViewModel.MatchSetup.Mode = .vsFriend,
+        humanSide: GameViewModel.MatchSetup.HumanSide = .right
     ) {
         self.vm = viewModel
         self.player1Name = player1Name
         self.player2Name = player2Name
         self.player1IconAsset = player1IconAsset
         self.player2IconAsset = player2IconAsset
-        self.isFriendMode = isFriendMode
+        self.mode = mode
+        self.humanSide = humanSide
         super.init(size: .zero)
     }
 
@@ -157,9 +173,11 @@ final class GameScene: SKScene {
             player1Name: "Player 1",
             player2Name: "Player 2",
             player1IconAsset: "user_icon_base",
-            player2IconAsset: "user_icon_2"
+            player2IconAsset: "user_icon_2",
+            mode: .vsFriend
         )
     }
+
     required init?(coder aDecoder: NSCoder) { fatalError() }
 
     // MARK: Lifecycle
@@ -213,6 +231,8 @@ final class GameScene: SKScene {
 
         now = 0
         lastUpdateTime = 0
+        cpuNextActionAt = 0
+        cpuLastHitAt = 0
         startRound()
     }
 
@@ -266,6 +286,7 @@ final class GameScene: SKScene {
         // spawn по расписанию
         maybeSpawn(on: .left)
         maybeSpawn(on: .right)
+        maybeCPUMove()
 
         // конец раунда
         if now >= roundEndAt {
@@ -278,22 +299,27 @@ final class GameScene: SKScene {
         guard !matchOver, let t = touches.first else { return }
         let p = t.location(in: self)
 
-        // 1) Если тап по хомяку — обрабатываем hit
+        // 1) If tap hits a hamster, process a hit (respect vsCPU side restriction)
         if let hamster = nodes(at: p).compactMap({ $0 as? HamsterSpriteNode }).first {
-            handleHit(hamster)
+            let side: Side = (hamster.parent === self.leftBoard) ? .left : .right
+            if isHumanAllowedToHit(side: side) {
+                handleHit(hamster)
+            } else {
+                runMissEffect(at: p)
+            }
             return
         }
 
         // 2) Иначе: промах (можно сделать эффект)
-        // При желании можно определять “какая лунка” — но для матча не обязательно.
         runMissEffect(at: p)
     }
 
     private func handleHit(_ hamster: HamsterSpriteNode) {
-        // NOTE: we haven't wired helmet HP yet; for now any successful hit counts as a kill.
-        // We award score after the hit animation finishes.
+        // SFX: attempt/accepted hit (we play only if accepted below)
         let accepted = hamster.tryHit { [weak self, weak hamster] in
             guard let self else { return }
+            // SFX: hit
+            SoundManager.shared.play("hit", ext: "wav")
 
             // Determine side by which board contains the node.
             let side: Side = (hamster?.parent === self.leftBoard) ? .left : .right
@@ -302,7 +328,6 @@ final class GameScene: SKScene {
             hamster?.removeFromParent()
 
             self.gameState?.recordHamsterDestroyed()
-
             self.addScore(for: side, delta: 1)
 
             if let winner = self.checkWinner() {
@@ -311,8 +336,6 @@ final class GameScene: SKScene {
         }
 
         if !accepted {
-            // If the hamster is not currently hittable, treat as miss.
-            // (Optional) You can remove this if you prefer silent ignores.
             runMissEffect(at: hamster.position)
         }
     }
@@ -334,23 +357,78 @@ final class GameScene: SKScene {
     }
 
     private func finishMatch(winner: Side, reason: String) {
-        // Prevent double finish
         guard !matchOver else { return }
         matchOver = true
+        // SFX: win/lose only in VS CPU
+        if mode == .vsCPU {
+            if winner == cpuSide {
+                SoundManager.shared.play("lose", ext: "wav")
+            } else {
+                SoundManager.shared.play("win", ext: "mp3")
+            }
+        }
 
         // ✅ Achievement: Play 100 matches with a friend
-        if isFriendMode {
+        if mode == .vsFriend {
             gameState?.recordFriendMatchPlayed()
         }
 
-        // ✅ Coins earned for the match (counts toward "Collect 25,000 coins")
-        // Tune this value however you want.
-        let rewardCoins = 100
-        gameState?.addCoins(rewardCoins)
+        // ✅ Coins earned only for a WIN vs CPU (counts toward "Collect 25,000 coins")
+        if mode == .vsCPU {
+            // cpuSide is the side controlled by the computer; if winner is NOT cpuSide, the human won.
+            if winner != cpuSide {
+                let rewardCoins = 100
+                gameState?.addCoins(rewardCoins)
+            }
+        }
 
         Task { @MainActor in
             self.vm.endMatch(winner: winner, left: self.scores.left, right: self.scores.right, reason: reason)
         }
+    }
+
+    // MARK: - VS CPU helpers
+
+    private var cpuSide: Side {
+        return (humanSide == .left) ? .right : .left
+    }
+
+    private func isHumanAllowedToHit(side: Side) -> Bool {
+        switch mode {
+        case .vsFriend:
+            return true
+        case .vsCPU:
+            return (humanSide == .right && side == .right) || (humanSide == .left && side == .left)
+        }
+    }
+
+    private func maybeCPUMove() {
+        guard !matchOver else { return }
+        guard mode == .vsCPU else { return }
+
+        // Rate limit CPU hits
+        let minInterval = 1.0 / max(0.1, cpuMaxHitsPerSecond)
+        if now - cpuLastHitAt < minInterval { return }
+
+        if cpuNextActionAt == 0 {
+            cpuNextActionAt = now + TimeInterval.random(in: cpuReactionRange)
+        }
+        guard now >= cpuNextActionAt else { return }
+
+        let board = (cpuSide == .left) ? leftBoard : rightBoard
+        let candidates = board.activeHamsters().filter { $0.state == .emerging || $0.state == .idle }
+
+        guard let target = candidates.randomElement() else {
+            cpuNextActionAt = now + TimeInterval.random(in: cpuReactionRange)
+            return
+        }
+
+        if Double.random(in: 0..<1) <= cpuAccuracy {
+            handleHit(target)
+            cpuLastHitAt = now
+        }
+
+        cpuNextActionAt = now + TimeInterval.random(in: cpuReactionRange)
     }
 
     // MARK: Spawn
@@ -358,7 +436,6 @@ final class GameScene: SKScene {
         guard let t = nextSpawnAt[side], now >= t else { return }
         let board = (side == .left) ? leftBoard : rightBoard
 
-        // выбираем свободную лунку
         guard let hole = board.randomFreeHole() else {
             scheduleNextSpawn(for: side)
             return
@@ -387,20 +464,16 @@ final class GameScene: SKScene {
         let r = safeRect
         guard r.width > 0, r.height > 0 else { return }
 
-        // Layout only within safe area. Background stays full-screen.
         let padding: CGFloat = 18
         let gap: CGFloat = 18
 
         let boardW = (r.width - padding * 2 - gap) / 2
         let boardH = min(r.height * 0.72, boardW * 1.15)
 
-        // Center vertically inside safe rect; tweak yBias to move boards down.
         let yBias: CGFloat = -40
         var y = r.minY + (r.height - boardH) / 2 + yBias
-        // Clamp so boards remain fully within the safe rect.
         y = min(max(y, r.minY), r.maxY - boardH)
 
-        // BoardNode is positioned by its bottom-left corner in this project.
         leftBoard.position = CGPoint(x: r.minX + padding, y: y)
         rightBoard.position = CGPoint(x: r.minX + padding + boardW + gap, y: y)
 
@@ -409,11 +482,7 @@ final class GameScene: SKScene {
     }
 
     private func runMissEffect(at p: CGPoint) {
-        let dot = SKShapeNode(circleOfRadius: 10)
-        dot.fillColor = .red
-        dot.lineWidth = 0
-        dot.position = p
-        addChild(dot)
-        dot.run(.sequence([.fadeOut(withDuration: 0.25), .removeFromParent()]))
+        // SFX only, no visual debug markers
+        SoundManager.shared.play("miss", ext: "mp3")
     }
 }

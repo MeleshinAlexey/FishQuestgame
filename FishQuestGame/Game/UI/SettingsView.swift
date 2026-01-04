@@ -12,9 +12,9 @@ struct SettingsView: View {
     @EnvironmentObject private var gameState: GameState
     let onClose: () -> Void
 
-    // Временно: локальные настройки. Потом можно сохранить в AppStorage.
-    @AppStorage("musicVolume") private var musicVolume: Double = 0.65
-    private var musicVolumeFloat: Float { Float(musicVolume) }
+    // Persisted music volume (storage) + live slider value (for immediate updates on iOS 16)
+    @AppStorage("musicVolume") private var storedMusicVolume: Double = 0.65
+    @State private var musicVolume: Double = 0.65
 
     // Список фоновых треков (добавляй файлы в проект с такими именами)
     private let musicTracks: [(name: String, ext: String, title: String)] = [
@@ -25,9 +25,13 @@ struct SettingsView: View {
 
     @AppStorage("musicTrackIndex") private var musicTrackIndex: Int = 0
 
-    @State private var soundsVolume: Double = 0.65
+    @AppStorage("soundsVolume") private var soundsVolume: Double = 0.65
 
-    // Язык пока просто UI (позже подключим локализацию)
+    // Language (EN / ES / FR / IT) persisted and applied via RootView's `.environment(\.locale, ...)`
+    @AppStorage("appLanguage") private var appLanguage: String = "en"
+    // Must match lenguage_icon_1...4 order: EN, IT, ES, FR
+    private let languageCodes: [String] = ["en", "it", "es", "fr"]
+
     @State private var languageIndex: Int = 0
     private let languagesCount = 4
 
@@ -44,7 +48,10 @@ struct SettingsView: View {
                 VStack() {
                     // Top bar (home + balance) внутри safeArea
                     HStack {
-                        Button { onClose() } label: {
+                        Button {
+                            SoundManager.shared.playButton()
+                            onClose()
+                        } label: {
                             Image("home_button")
                         }
                         .buttonStyle(.plain)
@@ -63,13 +70,13 @@ struct SettingsView: View {
                     }
 
                     // Title
-                    Text("Settings")
+                    Text("settings.title")
                         .font(.system(size: min(72, h * 0.11), weight: .heavy))
                         .foregroundStyle(.green)
                         .shadow(radius: 6)
                         .whiteTextOutline()
 
-                    Text("Language")
+                    Text("settings.language")
                         .font(.system(size: 48, weight: .heavy))
                         .foregroundStyle(.white)
                         .shadow(radius: 6)
@@ -80,7 +87,7 @@ struct SettingsView: View {
 
                         // MUSIC
                         VStack() {
-                            Text("Music")
+                            Text("settings.music")
                                 .font(.system(size: min(56, h * 0.09), weight: .heavy))
                                 .foregroundStyle(.white)
                                 .shadow(radius: 6)
@@ -120,19 +127,21 @@ struct SettingsView: View {
                             CapsuleSlider(value: $musicVolume)
                                 .frame(width: w * 0.26)
                                 .onAppear {
-                                    // применяем сохранённые настройки при открытии
-                                    AudioManager.shared.setVolume(musicVolumeFloat)
-
-                                    // применяем сохранённый трек при открытии
-                                    if !musicTracks.isEmpty {
-                                        let safeIndex = min(max(musicTrackIndex, 0), musicTracks.count - 1)
-                                        musicTrackIndex = safeIndex
-                                        let t = musicTracks[musicTrackIndex]
-                                        AudioManager.shared.changeBackgroundMusic(fileName: t.name, fileExtension: t.ext)
-                                    }
+                                    // Sync live slider from persisted value and apply immediately (without restarting music)
+                                    musicVolume = storedMusicVolume
+                                    AudioManager.shared.setVolume(Float(musicVolume))
                                 }
                                 .onChange(of: musicVolume) { newValue in
+                                    // Live volume updates while dragging
                                     AudioManager.shared.setVolume(Float(newValue))
+                                    // Persist for future launches/screens
+                                    storedMusicVolume = newValue
+                                }
+                                .onChange(of: storedMusicVolume) { newValue in
+                                    // If something else changes storage (e.g. on another screen), keep slider in sync
+                                    if abs(musicVolume - newValue) > 0.0001 {
+                                        musicVolume = newValue
+                                    }
                                 }
                         }
                         .offset(y: -13)
@@ -140,7 +149,11 @@ struct SettingsView: View {
                         // LANGUAGE
                         HStack() {
                             Button {
+                                SoundManager.shared.playButton()
                                 languageIndex = (languageIndex - 1 + languagesCount) % languagesCount
+                                if languageCodes.indices.contains(languageIndex) {
+                                    appLanguage = languageCodes[languageIndex]
+                                }
                             } label: {
                                 Image("leftFlip_button")
                             }
@@ -148,9 +161,18 @@ struct SettingsView: View {
 
                             Image("lenguage_icon_\(languageIndex + 1)")
                                 .shadow(radius: 6)
+                                .onChange(of: appLanguage) { newValue in
+                                    if let idx = languageCodes.firstIndex(of: newValue) {
+                                        languageIndex = min(max(idx, 0), languagesCount - 1)
+                                    }
+                                }
 
                             Button {
+                                SoundManager.shared.playButton()
                                 languageIndex = (languageIndex + 1) % languagesCount
+                                if languageCodes.indices.contains(languageIndex) {
+                                    appLanguage = languageCodes[languageIndex]
+                                }
                             } label: {
                                 Image("rightFlip_button")
                             }
@@ -159,7 +181,7 @@ struct SettingsView: View {
 
                         // SOUNDS
                         VStack() {
-                            Text("Sounds")
+                            Text("settings.sounds")
                                 .font(.system(size: min(56, h * 0.09), weight: .heavy))
                                 .foregroundStyle(.white)
                                 .shadow(radius: 6)
@@ -167,14 +189,35 @@ struct SettingsView: View {
 
                             CapsuleSlider(value: $soundsVolume)
                                 .frame(width: w * 0.26)
+                                .onAppear {
+                                    // Ensure any cached SFX players use current saved volume
+                                    SoundManager.shared.updateVolume(soundsVolume)
+                                }
+                                .onChange(of: soundsVolume) { newValue in
+                                    // Live SFX volume update while dragging
+                                    SoundManager.shared.updateVolume(newValue)
+                                }
                         }
                         .offset(y: -13)
                     }
 
                     Spacer()
                 }
+                .onAppear {
+                    // Sync language selector from persisted app language
+                    if let idx = languageCodes.firstIndex(of: appLanguage) {
+                        languageIndex = min(max(idx, 0), languagesCount - 1)
+                    } else {
+                        languageIndex = 0
+                        appLanguage = languageCodes[0]
+                    }
+                }
             }
         }
+        // Ensure this screen responds immediately to in-app language changes (iOS 16 safe)
+        .environment(\.locale, Locale(identifier: appLanguage))
+        // Force SwiftUI to rebuild localized Text views when language changes
+        .id(appLanguage)
     }
 }
 

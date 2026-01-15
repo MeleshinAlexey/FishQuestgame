@@ -255,7 +255,18 @@ final class GameScene: SKScene {
     }
 
     private func endRound() {
-        // По ТЗ: если победы нет — новый раунд
+        // ✅ VS FRIEND: матч заканчивается строго по таймеру
+        if mode == .vsFriend {
+            if scores.left == scores.right {
+                finishMatch(winner: nil, reason: "time_up")
+            } else {
+                let winner: Side = (scores.left > scores.right) ? .left : .right
+                finishMatch(winner: winner, reason: "time_up")
+            }
+            return
+        }
+
+        // ✅ Остальные режимы: прежняя логика (победа по условиям или продолжаем раунды)
         if let winner = checkWinner() {
             finishMatch(winner: winner, reason: "условие победы")
         } else {
@@ -356,11 +367,11 @@ final class GameScene: SKScene {
         return nil
     }
 
-    private func finishMatch(winner: Side, reason: String) {
+    private func finishMatch(winner: Side?, reason: String) {
         guard !matchOver else { return }
         matchOver = true
         // SFX: win/lose only in VS CPU
-        if mode == .vsCPU {
+        if mode == .vsCPU, let winner {
             if winner == cpuSide {
                 SoundManager.shared.play("lose", ext: "wav")
             } else {
@@ -374,7 +385,7 @@ final class GameScene: SKScene {
         }
 
         // ✅ Coins earned only for a WIN vs CPU (counts toward "Collect 25,000 coins")
-        if mode == .vsCPU {
+        if mode == .vsCPU, let winner {
             // cpuSide is the side controlled by the computer; if winner is NOT cpuSide, the human won.
             if winner != cpuSide {
                 let rewardCoins = 100

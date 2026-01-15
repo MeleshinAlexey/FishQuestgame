@@ -47,6 +47,7 @@
 "mode.cpu_name" = "CPU";
 "mode.player1_default" = "Joueur 1";
 "mode.player2_default" = "Joueur 2";
+"common.draw" = "Match nul";
 
 /*GameScene*/
 "common.play" = "JOUER";

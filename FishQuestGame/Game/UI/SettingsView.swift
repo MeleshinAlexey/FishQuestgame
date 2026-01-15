@@ -56,7 +56,7 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
 
-                        Spacer()
+                        Spacer(minLength: 0)
 
                         ZStack {
                             Image("user_balance")
@@ -68,6 +68,8 @@ struct SettingsView: View {
                                 .offset(x: 18)
                         }
                     }
+                    .padding(.horizontal, max(16, w * 0.04))
+                    .padding(.top, max(6, h * 0.015))
 
                     // Title
                     Text("settings.title")

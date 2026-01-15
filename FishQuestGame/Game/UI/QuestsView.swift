@@ -133,6 +133,8 @@ struct QuestsView: View {
                                 .offset(x: min(26, w * 0.02))
                         }
                     }
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.top, max(6, h * 0.015))
 
                     // Title (same style pattern as AchievementsView)
                     Text(L("quests.title"))

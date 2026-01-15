@@ -74,25 +74,26 @@ struct ModeSelectionView: View {
             // Контент: внутри safe area
             VStack(spacing: 0) {
                 Spacer()
-                // Верхняя панель
+                // Верхняя панель (адаптивная)
                 GeometryReader { geo in
+                    let h = geo.size.height
                     HStack {
-                        Spacer()
+                        // Home button aligned to the left
                         Button {
                             SoundManager.shared.playButton()
-                            // Сразу возвращаемся в MainMenuView
                             showModeSelection = false
                         } label: {
                             Image("home_button")
                         }
                         .buttonStyle(.plain)
 
-                        Spacer(minLength: geo.size.width * 0.4)
+                        Spacer(minLength: 0)
 
+                        // Balance aligned to the right
                         BalanceView(coins: gameState.coins)
-                        Spacer()
                     }
-                    .padding(.top, 6)
+                    .padding(.horizontal)
+                    .padding(.top, max(10, h * 0.02))
                 }
                 .frame(height: 64)
 

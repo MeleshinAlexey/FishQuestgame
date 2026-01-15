@@ -52,19 +52,19 @@ struct AchievementsView: View {
                 VStack(spacing: 0) {
                     // Top bar
                     HStack {
-//                        Spacer()
                         Button {
                             SoundManager.shared.playButton()
                             dismiss()
                         } label: {
                             Image("home_button")
                         }
+                        .buttonStyle(.plain)
 
-                        Spacer(minLength: 150)
+                        Spacer(minLength: 0)
 
                         ZStack {
                             Image("user_balance")
-                                
+
                             // Number sits on top of the balance plate
                             Text("\(gameState.coins)")
                                 .font(.system(size: min(34, h * 0.055), weight: .heavy))
@@ -72,11 +72,9 @@ struct AchievementsView: View {
                                 .shadow(radius: 3)
                                 .offset(x: min(26, w * 0.02))
                         }
-//                        Spacer()
                     }
-                    
-//                    .padding(.horizontal, horizontalPadding)
-//                    .padding(.top, max(8, h * 0.02))
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.top, max(8, h * 0.02))
 
                     // Title
                     Text(L("achievements.title"))

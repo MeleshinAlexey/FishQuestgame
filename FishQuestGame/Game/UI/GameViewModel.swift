@@ -17,6 +17,7 @@ final class GameViewModel: ObservableObject {
 
     @Published var isGameOver: Bool = false
     @Published var winnerText: String = ""
+    @Published var isDraw: Bool = false
 
     struct Player: Identifiable, Codable, Equatable {
         let id: UUID
@@ -51,16 +52,23 @@ final class GameViewModel: ObservableObject {
 
     func setTime(_ t: Int) { timeLeft = t }
 
-    func endMatch(winner: Side, left: Int, right: Int, reason: String) {
+    func endMatch(winner: Side?, left: Int, right: Int, reason: String) {
         isGameOver = true
-        winnerText = (winner == .left ? "Игрок 1 победил" : "Игрок 2 победил") + " • \(reason)"
+        isDraw = (winner == nil)
+
+        if let winner {
+            winnerText = (winner == .left ? "Игрок 1 победил" : "Игрок 2 победил") + " • \(reason)"
+        } else {
+            winnerText = "Ничья" + " • \(reason)"
+        }
+
         leftScore = left
         rightScore = right
     }
 
     func resetUI() {
         leftScore = 0; rightScore = 0; timeLeft = 30
-        isGameOver = false; winnerText = ""
+        isGameOver = false; winnerText = ""; isDraw = false
     }
     
 }

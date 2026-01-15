@@ -63,8 +63,9 @@ struct GameHostView: View {
     @State private var scene: GameScene? = nil
 
     private var winnerName: String {
-        // При равенстве пусть победителем считается Player 1 (потом можно сделать DRAW)
-        vm.leftScore >= vm.rightScore ? player1Name : player2Name
+        // Если ничья — возвращаем локализованный текст
+        if vm.isDraw { return L("common.draw") }
+        return vm.leftScore >= vm.rightScore ? player1Name : player2Name
     }
     
     // MARK: - Localization (explicit bundle lookup for in-app language)
@@ -83,6 +84,7 @@ struct GameHostView: View {
     }
 
     private var resultWordKey: String {
+        if vm.isDraw { return "common.draw" }
         // In vsFriend, always show WIN for the winnerName display.
         // In vsCPU, show WIN if the human (right side) won, else LOSE.
         if mode == .vsCPU {
@@ -108,7 +110,7 @@ struct GameHostView: View {
 
             if vm.isGameOver {
                 WinMatchOverlay(
-                    titleText: "\(winnerName) \(L(resultWordKey))!",
+                    titleText: vm.isDraw ? (L("common.draw") + "!") : (winnerName + " " + L(resultWordKey) + "!"),
                     menuTitle: L("common.menu"),
                     nextTitle: L("common.next"),
                     onMenu: { goToMainMenu() },

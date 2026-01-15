@@ -47,6 +47,7 @@
 "mode.cpu_name" = "CPU";
 "mode.player1_default" = "Jugador 1";
 "mode.player2_default" = "Jugador 2";
+"common.draw" = "Empate";
 
 /*GameScene*/
 "common.play" = "JUGAR";

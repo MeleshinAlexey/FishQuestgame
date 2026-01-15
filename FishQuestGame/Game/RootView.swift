@@ -16,8 +16,6 @@ struct RootView: View {
     @AppStorage("musicTrackIndex") private var musicTrackIndex: Int = 0
     @AppStorage("appLanguage") private var appLanguage: String = "en" // en / es / fr / it
 
-    @State private var isLoading: Bool = true
-
     private let musicTracks: [(name: String, ext: String, title: String)] = [
         ("bg_music", "wav", "Track 1"),
         ("bg_music2", "wav", "Track 2"),
@@ -25,37 +23,14 @@ struct RootView: View {
     ]
 
     var body: some View {
-        Group {
-            if isLoading {
-                // ✅ Loading: разрешаем все ориентации
-                LoadingView( // <-- ВАЖНО: замени на реальное имя твоего экрана загрузки
-                    onFinished: {
-                        goToMenu()
-                    }
-                )
-                .environment(\.locale, Locale(identifier: appLanguage))
-                .onAppear {
-                    setOrientation(.all)
-                    startMusicIfNeeded()
-                }
-            } else {
-                // ✅ Menu+: только landscape
-                MainMenuView()
-                    .environmentObject(gameState)
-                    .environment(\.locale, Locale(identifier: appLanguage))
-                    .onAppear {
-                        setOrientation([.landscapeLeft, .landscapeRight])
-                    }
+        MainMenuView()
+            .environmentObject(gameState)
+            .environment(\.locale, Locale(identifier: appLanguage))
+            .onAppear {
+                // стартуем сразу в меню: только landscape
+                setOrientation([.landscapeLeft, .landscapeRight])
+                startMusicIfNeeded()
             }
-        }
-    }
-
-    private func goToMenu() {
-        // перед показом меню лочим landscape
-        setOrientation([.landscapeLeft, .landscapeRight])
-        withAnimation(.easeOut(duration: 0.2)) {
-            isLoading = false
-        }
     }
 
     private func startMusicIfNeeded() {
